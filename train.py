@@ -7,18 +7,19 @@ import time
 from tqdm import tqdm
 from gpt_model import *
 
+
 def make_data(datas):
-    train_datas =[]
+    train_datas = []
     for data in datas:
-        data=data.strip()
-        train_data = [i if i!='\t' else "<sep>" for i in data]+['<sep>']
+        data = data.strip()
+        train_data = [i if i != '\t' else "<sep>" for i in data] + ['<sep>']
         train_datas.append(train_data)
 
     return train_datas
 
 
 class MyDataSet(Data.Dataset):
-    def __init__(self,datas):
+    def __init__(self, datas):
         self.datas = datas
 
     def __getitem__(self, item):
@@ -29,34 +30,36 @@ class MyDataSet(Data.Dataset):
         decoder_input_len = len(decoder_input)
         decoder_output_len = len(decoder_output)
 
-        return {"decoder_input":decoder_input,"decoder_input_len":decoder_input_len,
-                "decoder_output":decoder_output,"decoder_output_len":decoder_output_len}
+        return {"decoder_input": decoder_input, "decoder_input_len": decoder_input_len,
+                "decoder_output": decoder_output, "decoder_output_len": decoder_output_len}
 
     def __len__(self):
         return len(self.datas)
 
-    def padding_batch(self,batch):
+    def padding_batch(self, batch):
         decoder_input_lens = [d["decoder_input_len"] for d in batch]
         decoder_output_lens = [d["decoder_output_len"] for d in batch]
 
         decoder_input_maxlen = max(decoder_input_lens)
         decoder_output_maxlen = max(decoder_output_lens)
 
-
         for d in batch:
-            d["decoder_input"].extend([word2id["<pad>"]]*(decoder_input_maxlen-d["decoder_input_len"]))
-            d["decoder_output"].extend([word2id["<pad>"]]*(decoder_output_maxlen-d["decoder_output_len"]))
-        decoder_inputs = torch.tensor([d["decoder_input"] for d in batch],dtype=torch.long)
-        decoder_outputs = torch.tensor([d["decoder_output"] for d in batch],dtype=torch.long)
+            d["decoder_input"].extend([word2id["<pad>"]] * (decoder_input_maxlen - d["decoder_input_len"]))
+            d["decoder_output"].extend([word2id["<pad>"]] * (decoder_output_maxlen - d["decoder_output_len"]))
+        decoder_inputs = torch.tensor([d["decoder_input"] for d in batch], dtype=torch.long)
+        decoder_outputs = torch.tensor([d["decoder_output"] for d in batch], dtype=torch.long)
 
-        return decoder_inputs,decoder_outputs
+        return decoder_inputs, decoder_outputs
+
+
 def epoch_time(start_time, end_time):
     elapsed_time = end_time - start_time
     elapsed_mins = int(elapsed_time / 60)
     elapsed_secs = int(elapsed_time - (elapsed_mins * 60))
     return elapsed_mins, elapsed_secs
 
-def train_step(model,data_loader,optimizer,criterion,clip=1,print_every=None):
+
+def train_step(model, data_loader, optimizer, criterion, clip=1, print_every=None):
     model.train()
 
     if print_every == 0:
@@ -72,16 +75,14 @@ def train_step(model,data_loader,optimizer,criterion,clip=1,print_every=None):
         dec_outputs: [batch_size, tgt_len]
         '''
         optimizer.zero_grad()
-        dec_inputs, dec_outputs =dec_inputs.to(device), dec_outputs.to(device)
+        dec_inputs, dec_outputs = dec_inputs.to(device), dec_outputs.to(device)
         # outputs: [batch_size * tgt_len, tgt_vocab_size]
         outputs, dec_self_attns = model(dec_inputs)
-
 
         loss = criterion(outputs, dec_outputs.view(-1))
         print_loss_total += loss.item()
         epoch_loss += loss.item()
         loss.backward()
-
 
         # 梯度裁剪
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
@@ -95,7 +96,8 @@ def train_step(model,data_loader,optimizer,criterion,clip=1,print_every=None):
 
     return epoch_loss / len(data_loader)
 
-def train(model,data_loader):
+
+def train(model, data_loader):
     criterion = nn.CrossEntropyLoss(ignore_index=0).to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
@@ -111,7 +113,6 @@ def train(model,data_loader):
         print(f'\tTrain Loss: {train_loss:.3f}')
 
 
-
 def print_num_parameters(model):
     # Find total parameters and trainable parameters
     total_params = sum(p.numel() for p in model.parameters())
@@ -120,6 +121,7 @@ def print_num_parameters(model):
 
         p.numel() for p in model.parameters() if p.requires_grad)
     print(f'{total_trainable_params:,} training parameters.')
+
 
 if __name__ == '__main__':
     with open('dataset.txt', 'r', encoding='utf-8') as f:
@@ -138,5 +140,4 @@ if __name__ == '__main__':
 
     # model.load_state_dict(torch.load('GPT2.pt'))
 
-    train(model,data_loader)
-
+    train(model, data_loader)
