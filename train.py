@@ -105,7 +105,8 @@ def train(model, data_loader):
         start_time = time.time()
         train_loss = train_step(model, data_loader, optimizer, criterion, CLIP, print_every=10)
         end_time = time.time()
-
+        if (epoch + 1) % 3 == 0:
+            torch.save(model.state_dict(), f'GPT2_epoch_{epoch + 1}.pt')
         torch.save(model.state_dict(), 'GPT2.pt')
 
         epoch_mins, epoch_secs = epoch_time(start_time, end_time)
@@ -131,8 +132,8 @@ if __name__ == '__main__':
 
     train_num_data = [[word2id[word] for word in line] for line in train_data]
 
-    batch_size = 8
-    epochs = 30
+    batch_size = 4
+    epochs = 24
     dataset = MyDataSet(train_num_data)
     data_loader = Data.DataLoader(dataset, batch_size=batch_size, collate_fn=dataset.padding_batch)
 
